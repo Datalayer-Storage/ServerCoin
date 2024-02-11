@@ -1,0 +1,2 @@
+# ServerCoin
+Server coin
