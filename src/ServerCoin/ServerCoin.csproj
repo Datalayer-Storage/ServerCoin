@@ -1,45 +1,47 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>dig.servercoin</AssemblyName>
+        <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="puzzles\include\condition_codes.clib" />
-    <None Remove="puzzles\include\curry_and_treehash.clib" />
-    <None Remove="puzzles\include\singleton_truths.clib" />
-    <None Remove="puzzles\include\utility_macros.clib" />
-    <None Remove="puzzles\p2_parent.clsp" />
-    <None Remove="puzzles\p2_parent.clsp.hex" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Remove="puzzles\include\condition_codes.clib" />
+        <None Remove="puzzles\include\curry_and_treehash.clib" />
+        <None Remove="puzzles\include\singleton_truths.clib" />
+        <None Remove="puzzles\include\utility_macros.clib" />
+        <None Remove="puzzles\p2_parent.clsp" />
+        <None Remove="puzzles\p2_parent.clsp.hex" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="puzzles\include\condition_codes.clib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="puzzles\include\curry_and_treehash.clib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="puzzles\include\singleton_truths.clib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="puzzles\include\utility_macros.clib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="puzzles\p2_parent.clsp">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="puzzles\p2_parent.clsp.hex">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="puzzles\include\condition_codes.clib">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="puzzles\include\curry_and_treehash.clib">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="puzzles\include\singleton_truths.clib">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="puzzles\include\utility_macros.clib">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="puzzles\p2_parent.clsp">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="puzzles\p2_parent.clsp.hex">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="chia-dotnet" Version="3.1.0" />
-    <PackageReference Include="chia-dotnet-bls" Version="1.3.2" />
-    <PackageReference Include="chia-dotnet-clvm" Version="0.1.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="chia-dotnet" Version="3.1.0" />
+        <PackageReference Include="chia-dotnet-bls" Version="1.3.2" />
+        <PackageReference Include="chia-dotnet-clvm" Version="0.1.0" />
+    </ItemGroup>
 
 </Project>

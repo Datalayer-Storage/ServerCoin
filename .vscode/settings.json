@@ -1,3 +1,11 @@
 {
-  "cSpell.words": ["datalayer", "referer", "unmirror", "Unprotect"]
+    "cSpell.words": [
+        "clvm",
+        "datalayer",
+        "referer",
+        "servercoin",
+        "unmirror",
+        "Unprotect"
+    ],
+    "dotnet-test-explorer.testProjectPath": "**/*Tests.@(csproj|vbproj|fsproj)"
 }
