@@ -22,34 +22,62 @@ public class ServerCoinFactory
         curriedMirrorPuzzleFromHex = Program.FromHex(HexHelper.SanitizeHex(curriedMirrorPuzzle.HashHex()));
     }
 
-    public Coin CreateServerCoin(Program launcherId, IEnumerable<CoinRecord> coinRecords, ulong amount, ulong fee)
+    public async Task<bool> CreateServerCoin(string storeId, IEnumerable<Uri> urls, string genesisChallenge, ulong amount, ulong fee, CancellationToken token = default)
     {
-        var hint = Program.FromBigInt(launcherId.ToBigInt() + 1)
-            .ToHex()
-            .PadLeft(64, '0')[..64];
+        var launcher = Program.FromHex(storeId);
+        var hint = launcher.ToHint();
+
+        var coinRecords = _wallet.SelectCoinRecords(amount + fee, CoinSelection.Smallest);
+        if (coinRecords.Count == 0)
+        {
+            throw new Exception("Insufficient balance");
+        }
 
         var totalValue = BigInteger.Zero;
-        foreach (var coinRecord in coinRecords)
+        foreach (var record in coinRecords)
         {
-            totalValue += coinRecord.Coin.Amount;
+            totalValue += record.Coin.Amount;
         }
-        var changeAmount = totalValue - fee - amount;
 
-        return null;
+        var changeAmount = totalValue - fee - amount;
+        var urlPrograms = urls.Select(url => Program.FromText(url.ToString()));
+        var coinSpends = coinRecords.Select((coinRecord, index) =>
+        {
+            var spentPuzzle = _wallet.PuzzleCache.First(puzzle => puzzle.HashHex() == HexHelper.SanitizeHex(coinRecord.Coin.PuzzleHash));
+
+            var solution = new List<Program>();
+            if (index == 0)
+            {
+                solution.Add(Program.FromSource($"({(int)ConditionCodes.CREATE_COIN} 0x{curriedMirrorPuzzle.HashHex()} {amount} (0x{hint} {string.Join(" ", urlPrograms)}))"));
+                solution.Add(Program.FromSource($"({(int)ConditionCodes.CREATE_COIN} {HexHelper.FormatHex(coinRecord.Coin.PuzzleHash)} {changeAmount})"));
+            }
+
+            var coinSpend = new CoinSpend
+            {
+                Coin = coinRecord.Coin,
+                PuzzleReveal = spentPuzzle.SerializeHex(),
+                Solution = StandardTransaction.GetSolution(solution).SerializeHex(),
+            };
+
+            return coinSpend;
+        }).ToList();
+
+        var signedSpendBundle = _wallet.SignSpend(new SpendBundle
+        {
+            CoinSpends = coinSpends,
+            AggregatedSignature = JacobianPoint.InfinityG2().ToHex(),
+        },
+        genesisChallenge.FromHex());
+
+        return await _fullNode.PushTx(signedSpendBundle, token);
     }
 
     public async Task<bool> DeleteServerCoin(string coinId, string genesisChallenge, ulong fee, CancellationToken token = default)
     {
         var coinRecordResponse = await _fullNode.GetCoinRecordByName(coinId, token);
-
-        var puzzleSolution = await _fullNode.GetPuzzleAndSolution(
-            coinRecordResponse.Coin.ParentCoinInfo,
-            coinRecordResponse.ConfirmedBlockIndex
-        );
-
+        var puzzleSolution = await _fullNode.GetPuzzleAndSolution(coinRecordResponse.Coin.ParentCoinInfo, coinRecordResponse.ConfirmedBlockIndex, token);
         var revealProgram = Program.DeserializeHex(HexHelper.SanitizeHex(puzzleSolution.PuzzleReveal));
         var delegatedPuzzle = chia.dotnet.wallet.Puzzles.PayToConditions.Run(Program.FromList([Program.Nil])).Value;
-
         var standardTransactionInnerSolution = Program.FromList([
             Program.Nil,
             delegatedPuzzle,
@@ -57,7 +85,6 @@ public class ServerCoinFactory
         ]);
 
         var coinRecords = _wallet.SelectCoinRecords(1 + fee, CoinSelection.Smallest);
-
         if (coinRecords.Count == 0)
         {
             throw new Exception("Insufficient balance");
@@ -70,7 +97,6 @@ public class ServerCoinFactory
         }
 
         var changeAmount = totalValue - fee;
-
         var coinSpends = coinRecords.Select((coinRecord, index) =>
         {
             var spentPuzzle = _wallet.PuzzleCache.First(puzzle => puzzle.HashHex() == HexHelper.SanitizeHex(coinRecord.Coin.PuzzleHash));
@@ -80,9 +106,7 @@ public class ServerCoinFactory
             {
                 // Send the change to the same address
                 solution.Add(
-                    Program.FromSource(
-                        $"({(int)ConditionCodes.CREATE_COIN} {HexHelper.FormatHex(coinRecord.Coin.PuzzleHash)} {changeAmount})"
-                    )
+                    Program.FromSource($"({(int)ConditionCodes.CREATE_COIN} {HexHelper.FormatHex(coinRecord.Coin.PuzzleHash)} {changeAmount})")
                 );
             }
 
@@ -107,24 +131,20 @@ public class ServerCoinFactory
 
         coinSpends.Add(deleteCoinSpend);
 
-        var spendBundle = new SpendBundle
+        var signedSpendBundle = _wallet.SignSpend(new SpendBundle
         {
             CoinSpends = coinSpends,
             AggregatedSignature = JacobianPoint.InfinityG2().ToHex(),
-        };
+        },
+        genesisChallenge.FromHex());
 
-        var signedSpendBundle = _wallet.SignSpend(spendBundle, genesisChallenge.FromHex());
-
-        return await _fullNode.PushTx(signedSpendBundle);
+        return await _fullNode.PushTx(signedSpendBundle, token);
     }
 
-    public async Task<IEnumerable<ServerCoin>> GetServerCoins(string launcherId, CancellationToken token = default)
+    public async Task<IEnumerable<ServerCoin>> GetServerCoins(string storeId, CancellationToken token = default)
     {
-        var launcher = Program.FromHex(launcherId);
-        var hint = Program.FromBigInt(launcher.ToBigInt() + 1)
-            .ToHex()
-            .PadLeft(64, '0')[..64];
-        var coinRecords = await _fullNode.GetCoinRecordsByHint(hint, false, cancellationToken: token);
+        var launcher = Program.FromHex(storeId);
+        var coinRecords = await _fullNode.GetCoinRecordsByHint(launcher.ToHint(), false, cancellationToken: token);
         var servers = new List<ServerCoin>();
 
         foreach (var coinRecord in coinRecords)
